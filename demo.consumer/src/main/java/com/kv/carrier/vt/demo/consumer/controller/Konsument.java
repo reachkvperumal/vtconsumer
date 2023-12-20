@@ -1,5 +1,6 @@
 package com.kv.carrier.vt.demo.consumer.controller;
 
+import com.kv.carrier.vt.demo.consumer.exception.VTConsumerException;
 import com.kv.carrier.vt.demo.consumer.service.ProducerSvc;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +19,11 @@ public class Konsument {
 
     @GetMapping("/sleep/{secs}")
     public String demo(@PathVariable("secs") Integer secs) {
-
         return producerSvc.apply(secs);
+    }
+
+    @GetMapping("exp")
+    public String exception(){
+        throw new VTConsumerException("Exception Demo...");
     }
 }

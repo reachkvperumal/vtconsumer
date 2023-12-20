@@ -3,12 +3,13 @@ spring:
     name: consumer-with-vt-thread
   threads:
     virtual:
-      enabled: false
+      enabled: true
 
 server:
   port: 8080
   servlet:
     context-path: /consumer
+
 
 
 consumer:
