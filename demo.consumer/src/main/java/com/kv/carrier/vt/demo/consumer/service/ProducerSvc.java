@@ -39,5 +39,4 @@ public class ProducerSvc implements InitializingBean {
         log.info("{} ", resp);
         return resp;
     }
-
 }

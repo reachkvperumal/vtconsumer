@@ -16,3 +16,8 @@ consumer:
   hostName: http://localhost:8081
   contextPath: /producer
   path: /api/v1/sleep/
+
+demo:
+  url: https://jsonplaceholder.typicode.com
+  summary: https://apidojo-yahoo-finance-v1.p.rapidapi.com
+  keyFileName: classpath:key.txt
