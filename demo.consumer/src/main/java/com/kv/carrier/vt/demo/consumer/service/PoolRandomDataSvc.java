@@ -33,8 +33,11 @@ public class PoolRandomDataSvc implements InitializingBean {
 
     private static final ScopedValue<String> HEADER_KEY = ScopedValue.newInstance();
 
-    public PoolRandomDataSvc(@Value("${demo.url}") String url, @Autowired RestClient.Builder builder,
-                             @Value("${demo.summary}") String ticker, @Autowired RestClient.Builder yahoo, @Value("${demo.keyFileName}") Resource resource) {
+    public PoolRandomDataSvc(@Value("${demo.url}") String url,
+                             @Autowired RestClient.Builder builder,
+                             @Value("${demo.summary}")
+                             String ticker, @Autowired RestClient.Builder yahoo,
+                             @Value("${demo.keyFileName}") Resource resource) {
         this.client = builder.baseUrl(url).build();
         this.yahoo = yahoo.baseUrl(ticker).build();
         this.resource = resource;
@@ -55,7 +58,8 @@ public class PoolRandomDataSvc implements InitializingBean {
             Subtask<String> random3 = scope.fork(() -> getMockData(Endpoints.RANDOM_THREE));
             Subtask<String> random4 = scope.fork(() -> getMockData(Endpoints.RANDOM_FOUR));
             Subtask<String> random5 = scope.fork(() -> getMockData(Endpoints.RANDOM_FIVE));
-            Subtask<String> random6 = scope.fork(() -> ScopedValue.callWhere(HEADER_KEY, key, () -> getTicker(ticker)));
+            Subtask<String> random6 = scope.fork(
+                    () -> ScopedValue.callWhere(HEADER_KEY, key, () -> getTicker(ticker)));
             try {
                 scope.join();
             } catch (InterruptedException e) {
@@ -67,21 +71,11 @@ public class PoolRandomDataSvc implements InitializingBean {
     }
 
     private String getMockData(Endpoints task) {
-        return client
-                .get()
-                .uri(Endpoints.LOOKUP.get(task))
-                .retrieve()
-                .toEntity(String.class)
-                .getBody();
+        return client.get().uri(Endpoints.LOOKUP.get(task)).retrieve().toEntity(String.class).getBody();
     }
 
     private String getTicker(String ticker) {
         log.info("HEADER KEY: {}", HEADER_KEY.get());
-        return yahoo
-                .get()
-                .uri(String.format(Endpoints.LOOKUP.get(Endpoints.GET_SUMMARY), ticker)).header(API_KEY, HEADER_KEY.get())
-                .retrieve()
-                .toEntity(String.class)
-                .getBody();
+        return yahoo.get().uri(String.format(Endpoints.LOOKUP.get(Endpoints.GET_SUMMARY), ticker)).header(API_KEY, HEADER_KEY.get()).retrieve().toEntity(String.class).getBody();
     }
 }
