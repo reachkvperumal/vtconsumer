@@ -4,6 +4,7 @@ import com.kv.carrier.vt.demo.consumer.config.Endpoints;
 import com.kv.carrier.vt.demo.consumer.dto.SummaryResponse;
 import com.kv.carrier.vt.demo.consumer.exception.VTConsumerSubTaskException;
 import com.kv.carrier.vt.demo.consumer.exception.VTConsumerThreadException;
+import io.micrometer.core.annotation.Timed;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,8 @@ import org.springframework.web.client.RestClient;
 
 import java.nio.charset.Charset;
 import java.util.concurrent.StructuredTaskScope;
-import java.util.function.Supplier;
+import java.util.concurrent.StructuredTaskScope.Subtask;
+
 @Log4j2
 @Service
 public class PoolRandomDataSvc implements InitializingBean {
@@ -29,6 +31,8 @@ public class PoolRandomDataSvc implements InitializingBean {
 
     private final Resource resource;
 
+    private static final ScopedValue<String> HEADER_KEY = ScopedValue.newInstance();
+
     public PoolRandomDataSvc(@Value("${demo.url}") String url, @Autowired RestClient.Builder builder,
                              @Value("${demo.summary}") String ticker, @Autowired RestClient.Builder yahoo, @Value("${demo.keyFileName}") Resource resource) {
         this.client = builder.baseUrl(url).build();
@@ -39,28 +43,45 @@ public class PoolRandomDataSvc implements InitializingBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         this.key = StreamUtils.copyToString(resource.getInputStream(), Charset.defaultCharset());
-        log.info("KEY: {}",this.key);
+        log.info("KEY: {}", this.key);
+
     }
 
+    @Timed(value = "ticker.timer.svc", description = "Time calculated for execution of service call alone.")
     public SummaryResponse apply(String ticker) {
         try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
-            Supplier<String> random1 = scope.fork(() -> client.get().uri(Endpoints.LOOKUP.get(Endpoints.RANDOM_ONE)).retrieve().toEntity(String.class).getBody());
-            Supplier<String> random2 = scope.fork(() -> client.get().uri(Endpoints.LOOKUP.get(Endpoints.RANDOM_TWO)).retrieve().toEntity(String.class).getBody());
-            Supplier<String> random3 = scope.fork(() -> client.get().uri(Endpoints.LOOKUP.get(Endpoints.RANDOM_THREE)).retrieve().toEntity(String.class).getBody());
-            Supplier<String> random4 = scope.fork(() -> client.get().uri(Endpoints.LOOKUP.get(Endpoints.RANDOM_FOUR)).retrieve().toEntity(String.class).getBody());
-            Supplier<String> random5 = scope.fork(() -> client.get().uri(Endpoints.LOOKUP.get(Endpoints.RANDOM_FIVE)).retrieve().toEntity(String.class).getBody());
-            Supplier<String> summary = scope.fork(() -> yahoo.get().uri(String.format(Endpoints.LOOKUP.get(Endpoints.GET_SUMMARY), ticker))
-                    .header(API_KEY, key)
-                    .retrieve().toEntity(String.class).getBody());
-
+            Subtask<String> random1 = scope.fork(() -> retrieveFromProducer(Endpoints.RANDOM_ONE));
+            Subtask<String> random2 = scope.fork(() -> retrieveFromProducer(Endpoints.RANDOM_TWO));
+            Subtask<String> random3 = scope.fork(() -> retrieveFromProducer(Endpoints.RANDOM_THREE));
+            Subtask<String> random4 = scope.fork(() -> retrieveFromProducer(Endpoints.RANDOM_FOUR));
+            Subtask<String> random5 = scope.fork(() -> retrieveFromProducer(Endpoints.RANDOM_FIVE));
+            Subtask<String> random6 = scope.fork(() -> ScopedValue.callWhere(HEADER_KEY, key, () -> getTicker(ticker)));
             try {
                 scope.join();
             } catch (InterruptedException e) {
                 throw new VTConsumerThreadException(e);
             }
             scope.throwIfFailed(VTConsumerSubTaskException::new);
-            return new SummaryResponse(random1.get(), random2.get(), random3.get(), random4.get(), random5.get(), summary.get());
+            return new SummaryResponse(random1.get(), random2.get(), random3.get(), random4.get(), random5.get(), random6.get());
         }
     }
 
+    private String retrieveFromProducer(Endpoints task) {
+        return client
+                .get()
+                .uri(Endpoints.LOOKUP.get(task))
+                .retrieve()
+                .toEntity(String.class)
+                .getBody();
+    }
+
+    private String getTicker(String ticker) {
+        log.info("HEADER KEY: {}", HEADER_KEY.get());
+        return yahoo
+                .get()
+                .uri(String.format(Endpoints.LOOKUP.get(Endpoints.GET_SUMMARY), ticker)).header(API_KEY, HEADER_KEY.get())
+                .retrieve()
+                .toEntity(String.class)
+                .getBody();
+    }
 }

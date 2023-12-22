@@ -4,6 +4,7 @@ import com.kv.carrier.vt.demo.consumer.dto.SummaryResponse;
 import com.kv.carrier.vt.demo.consumer.exception.VTConsumerException;
 import com.kv.carrier.vt.demo.consumer.service.PoolRandomDataSvc;
 import com.kv.carrier.vt.demo.consumer.service.ProducerSvc;
+import io.micrometer.observation.annotation.Observed;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,7 @@ public class Konsument {
     }
 
     @GetMapping("/random/{ticker}")
+    @Observed(name="svc.calls", contextualName = "main controller method", lowCardinalityKeyValues = {"ticker","string"})
     public ResponseEntity<SummaryResponse> random(@PathVariable("ticker") String ticker){
         return new ResponseEntity<>(randomDataSvc.apply(ticker), HttpStatus.OK);
     }

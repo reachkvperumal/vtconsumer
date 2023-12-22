@@ -15,9 +15,6 @@ public class ProducerSvc implements InitializingBean {
     @Value("${consumer.hostName}")
     private String hostName;
 
-    @Value("${consumer.contextPath}")
-    private String contextPath;
-
     @Value("${consumer.path}")
     private String path;
 
@@ -27,8 +24,8 @@ public class ProducerSvc implements InitializingBean {
     private RestClient consumer;
 
     @Override
-    public void afterPropertiesSet() throws Exception {
-        String uri = String.format("%s%s%s",hostName,contextPath,path);
+    public void afterPropertiesSet() {
+        String uri = String.format("%s%s",hostName,path);
         log.info("Producer: {}",uri);
         this.consumer = builder.baseUrl(uri).build();
     }
