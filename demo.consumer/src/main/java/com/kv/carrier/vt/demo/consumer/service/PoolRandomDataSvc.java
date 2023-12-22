@@ -1,7 +1,7 @@
 package com.kv.carrier.vt.demo.consumer.service;
 
 import com.kv.carrier.vt.demo.consumer.config.Endpoints;
-import com.kv.carrier.vt.demo.consumer.dto.SummaryResponse;
+import com.kv.carrier.vt.demo.consumer.dto.MockDataResponse;
 import com.kv.carrier.vt.demo.consumer.exception.VTConsumerSubTaskException;
 import com.kv.carrier.vt.demo.consumer.exception.VTConsumerThreadException;
 import io.micrometer.core.annotation.Timed;
@@ -48,13 +48,13 @@ public class PoolRandomDataSvc implements InitializingBean {
     }
 
     @Timed(value = "ticker.timer.svc", description = "Time calculated for execution of service call alone.")
-    public SummaryResponse apply(String ticker) {
+    public MockDataResponse apply(String ticker) {
         try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
-            Subtask<String> random1 = scope.fork(() -> retrieveFromProducer(Endpoints.RANDOM_ONE));
-            Subtask<String> random2 = scope.fork(() -> retrieveFromProducer(Endpoints.RANDOM_TWO));
-            Subtask<String> random3 = scope.fork(() -> retrieveFromProducer(Endpoints.RANDOM_THREE));
-            Subtask<String> random4 = scope.fork(() -> retrieveFromProducer(Endpoints.RANDOM_FOUR));
-            Subtask<String> random5 = scope.fork(() -> retrieveFromProducer(Endpoints.RANDOM_FIVE));
+            Subtask<String> random1 = scope.fork(() -> getMockData(Endpoints.RANDOM_ONE));
+            Subtask<String> random2 = scope.fork(() -> getMockData(Endpoints.RANDOM_TWO));
+            Subtask<String> random3 = scope.fork(() -> getMockData(Endpoints.RANDOM_THREE));
+            Subtask<String> random4 = scope.fork(() -> getMockData(Endpoints.RANDOM_FOUR));
+            Subtask<String> random5 = scope.fork(() -> getMockData(Endpoints.RANDOM_FIVE));
             Subtask<String> random6 = scope.fork(() -> ScopedValue.callWhere(HEADER_KEY, key, () -> getTicker(ticker)));
             try {
                 scope.join();
@@ -62,11 +62,11 @@ public class PoolRandomDataSvc implements InitializingBean {
                 throw new VTConsumerThreadException(e);
             }
             scope.throwIfFailed(VTConsumerSubTaskException::new);
-            return new SummaryResponse(random1.get(), random2.get(), random3.get(), random4.get(), random5.get(), random6.get());
+            return new MockDataResponse(random1.get(), random2.get(), random3.get(), random4.get(), random5.get(), random6.get());
         }
     }
 
-    private String retrieveFromProducer(Endpoints task) {
+    private String getMockData(Endpoints task) {
         return client
                 .get()
                 .uri(Endpoints.LOOKUP.get(task))
