@@ -1,5 +1,6 @@
 package com.kv.carrier.vt.demo.consumer.service;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,7 @@ public class ProducerSvc implements InitializingBean {
         this.consumer = builder.baseUrl(uri).build();
     }
 
+    @Timed(value = "consumer.timer.svc", description = "Time calculated for execution of consumer service call alone.")
     public String apply(Integer time){
         ResponseEntity<String> entity = consumer.get().uri(String.valueOf(time)).retrieve().toEntity(String.class);
         String resp = String.format("Response: %s - Thread: %s - Http Code: %s", entity.getBody(), Thread.currentThread(), entity.getStatusCode());
