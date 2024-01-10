@@ -1,8 +1,8 @@
 package com.kv.carrier.vt.demo.consumer.controller;
 
-import com.kv.carrier.vt.demo.consumer.dto.MockDataResponse;
+import com.kv.carrier.vt.demo.consumer.dto.RespDataDO;
 import com.kv.carrier.vt.demo.consumer.exception.VTConsumerException;
-import com.kv.carrier.vt.demo.consumer.service.PoolRandomDataSvc;
+import com.kv.carrier.vt.demo.consumer.service.PollDataSvc;
 import com.kv.carrier.vt.demo.consumer.service.ProducerSvc;
 import io.micrometer.observation.annotation.Observed;
 import lombok.extern.log4j.Log4j2;
@@ -23,7 +23,7 @@ public class Konsument {
     private ProducerSvc producerSvc;
 
     @Autowired
-    private PoolRandomDataSvc randomDataSvc;
+    private PollDataSvc randomDataSvc;
 
     @GetMapping("/sleep/{secs}")
     public String demo(@PathVariable("secs") Integer secs) {
@@ -37,7 +37,7 @@ public class Konsument {
 
     @GetMapping("/random/{ticker}")
     @Observed(name="svc.calls", contextualName = "main controller method", lowCardinalityKeyValues = {"ticker","string"})
-    public ResponseEntity<MockDataResponse> random(@PathVariable("ticker") String ticker){
+    public ResponseEntity<RespDataDO> random(@PathVariable("ticker") String ticker){
         return new ResponseEntity<>(randomDataSvc.apply(ticker), HttpStatus.OK);
     }
 }
